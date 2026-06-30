@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDetalleVCOO, useTokenDeProvision } from '@/query/useConsulta';
+import apiClient from '@/api/apiClient';
 import StatusBadge from '@/components/StatusBadge';
 import Button from '@/components/Button';
 
@@ -112,6 +113,34 @@ const DetalleClientePage = () => {
   const provisionToken = tokenData?.token as string | undefined;
   const installCommand = tokenData?.install_command as string | undefined;
   const onboardingUrl = tokenData?.onboarding_url as string | undefined;
+
+  // ── Provider configuration state ──
+  const [provider, setProvider] = useState('openrouter');
+  const [model, setModel] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [configuring, setConfiguring] = useState(false);
+  const [configResult, setConfigResult] = useState<string | null>(null);
+
+  const handleSetProvider = async () => {
+    if (!provider || !apiKey) return;
+    setConfiguring(true);
+    setConfigResult(null);
+    try {
+      const { data } = await apiClient.post(`/vcoo/${id}/set-provider`, {
+        provider,
+        model,
+        api_key: apiKey,
+      });
+      setConfigResult(`✅ Comando enviado: ${data.provider}${data.model ? ` (${data.model})` : ''}`);
+      setApiKey('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || (err as Error).message || 'Error desconocido';
+      setConfigResult(`❌ Error: ${msg}`);
+    } finally {
+      setConfiguring(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -256,6 +285,69 @@ const DetalleClientePage = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Provider configuration */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">🤖 Proveedor de IA</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Configura el proveedor de inteligencia artificial del agente. La API key se envía cifrada y el agente la aplica automáticamente.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+            <select
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+            >
+              <option value="openrouter">OpenRouter</option>
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI (GPT)</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="google">Google (Gemini)</option>
+              <option value="xai">xAI (Grok)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Modelo <span className="text-gray-400">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+              placeholder="p.ej. openrouter/deepseek-v4, claude-sonnet-4, gpt-4o"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input
+              type="password"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+              placeholder="sk-..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+
+          <Button
+            onClick={handleSetProvider}
+            disabled={configuring || !provider || !apiKey}
+          >
+            {configuring ? 'Enviando...' : 'Configurar proveedor'}
+          </Button>
+
+          {configResult && (
+            <p className={`text-sm ${configResult.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+              {configResult}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Onboarding progress */}
