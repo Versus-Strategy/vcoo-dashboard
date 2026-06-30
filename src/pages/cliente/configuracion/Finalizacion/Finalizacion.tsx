@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { usarAlmacen } from '../../../../store/almacen';
 import { usarAccionesCliente } from '../../../../store/useAppStore';
-import useNavigate from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../../../components/Button';
 import StepIndicator from '../../../../components/StepIndicator';
 import StatusBadge from '../../../../components/StatusBadge';

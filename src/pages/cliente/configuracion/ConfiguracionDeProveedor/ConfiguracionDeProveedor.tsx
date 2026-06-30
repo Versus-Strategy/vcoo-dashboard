@@ -106,9 +106,11 @@ const ConfiguracionDeProveedor = () => {
           
           <Grid columns={3}>
             {proveedores.map(proveedor => (
-              <div key={proveedor.id} className="border rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary-300"
-                   onClick={() => manejarSeleccion(proveedor.id)}
-                   className={seleccionado === proveedor.id ? 'border-2 border-primary-500' : ''}>
+              <div 
+                key={proveedor.id} 
+                className={`border rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary-300 ${seleccionado === proveedor.id ? 'border-2 border-primary-500' : ''}`}
+                onClick={() => manejarSeleccion(proveedor.id)}
+              >
                 <div className="mb-3">
                   <img src={proveedor.logo} alt={proveedor.nombre} className="h-12 w-auto mx-auto" />
                 </div>
@@ -121,20 +123,20 @@ const ConfiguracionDeProveedor = () => {
           </Grid>
         </div>
         
-      {seleccionado && (
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-start">
-            <Button
-              onClick={() => manejarConectar(seleccionado!)}
-              disabled={conectando[seleccionado!]}
-              variant="primary"
-              size="sm"
-            >
-              {conectando[seleccionado!] ? 'Conectando...' : `Conectar con ${proveedores.find(p => p.id === seleccionado!)?.nombre}`}
-            </Button>
+        {seleccionado && (
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-start">
+              <Button
+                onClick={() => manejarConectar(seleccionado!)}
+                disabled={conectando[seleccionado!]}
+                variant="primary"
+                size="sm"
+              >
+                {conectando[seleccionado!] ? 'Conectando...' : `Conectar con ${proveedores.find(p => p.id === seleccionado!)?.nombre}`}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

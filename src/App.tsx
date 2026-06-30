@@ -2,11 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProveedorDeAuth } from './auth/authContext';
 import { useAuth } from './auth/authContext';
 import Login from './pages/Login/Login';
-import { ClientLayout } from './layouts/ClientLayout';
+import ClientLayout from '@/layouts/ClientLayout';
 // Importar layouts de operador cuando se implementen
 // import { OperatorLayout } from './layouts/OperatorLayout';
 // Importar rutas de cliente
-import { RutasCliente } from './rutas/rutasCliente';
+import RutasCliente from '@/rutas/rutasCliente';
 // Importar rutas de operador cuando se implementen
 // import { RutasOperador } from './rutas/rutasOperador';
 

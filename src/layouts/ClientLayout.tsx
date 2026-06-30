@@ -15,3 +15,4 @@ const ClientLayout = () => {
 };
 
 export default ClientLayout;
+// Updated to fix TypeScript import issue

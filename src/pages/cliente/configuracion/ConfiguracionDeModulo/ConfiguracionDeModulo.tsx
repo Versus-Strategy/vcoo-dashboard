@@ -65,12 +65,12 @@ const ConfiguracionDeModulo = () => {
 
   const manejarConectar = async () => {
     if (!seleccionadoProveedor) return;
-    
+
     setCargando(true);
     try {
       // Simular flujo de OAuth
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       const proveedorSeleccionado = config.proveedores.find(p => p.id === seleccionadoProveedor);
       if (proveedorSeleccionado) {
         agregarConfiguracionDeModulo(idDeModulo!, {
@@ -80,7 +80,7 @@ const ConfiguracionDeModulo = () => {
           proveedor: proveedorSeleccionado.nombre,
           credenciales: { /* en producción, almacenar credenciales de forma segura */ }
         });
-        
+
         // Determinar siguiente paso basado en el módulo
         const siguienteModulo = obtenerSiguienteModulo(idDeModulo!);
         if (siguienteModulo) {
@@ -119,16 +119,15 @@ const ConfiguracionDeModulo = () => {
       <div className="border rounded-lg p-4 bg-gray-50">
         <h3 className="font-semibold text-gray-900 mb-2">{config.titulo}</h3>
         <p className="text-gray-600 mb-4">{config.descripcion}</p>
-        
+
         <div className="space-y-4">
           <div className="font-medium text-gray-700 mb-2">Proveedores disponibles:</div>
           <Grid columns={3}>
             {config.proveedores.map(proveedor => (
               <div 
                 key={proveedor.id} 
-                className="border rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary-300"
+                className={`border rounded-lg p-4 text-center cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary-300 ${seleccionadoProveedor === proveedor.id ? 'border-2 border-primary-500' : ''}`}
                 onClick={() => setSeleccionadoProveedor(proveedor.id)}
-                className={seleccionadoProveedor === proveedor.id ? 'border-2 border-primary-500' : ''}
               >
                 <div className="mb-3">
                   <img src={proveedor.logo} alt={proveedor.nombre} className="h-10 w-auto mx-auto" />
@@ -137,7 +136,7 @@ const ConfiguracionDeModulo = () => {
               </div>
             ))}
           </Grid>
-          
+
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-800 mb-2">Permisos solicitados:</h4>
             <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
@@ -147,7 +146,7 @@ const ConfiguracionDeModulo = () => {
             </ul>
           </div>
         </div>
-        
+
         <div className="border-t pt-4">
           <div className="flex justify-end">
             <Button 
