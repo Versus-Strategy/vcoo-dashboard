@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://vcoo-onboarding.vercel.app';
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -44,18 +46,20 @@ apiClient.interceptors.response.use(
             });
 
             // Update token in localStorage
-            parsed.token = data.accessToken || data.token;
-            parsed.refreshToken = data.refreshToken || data.token;
+            const newToken = data.accessToken || data.token || parsed.token;
+            parsed.token = newToken;
+            parsed.refreshToken = newToken;
             parsed.marcaDeTiempo = Date.now();
             localStorage.setItem('vcoo-auth', JSON.stringify(parsed));
 
             // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${parsed.token}`;
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return apiClient(originalRequest);
           }
         }
       } catch {
         // If refresh fails, redirect to login
+        localStorage.removeItem('vcoo-auth');
         window.location.href = '/login';
         return Promise.reject(error);
       }

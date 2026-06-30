@@ -56,7 +56,7 @@ const ConfiguracionDeProveedor = () => {
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [conectando, setConectando] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
-  const { establecerConfiguracionDeProveedor, establecerPasoDeIncorporacion } = usarAccionesCliente();
+  const { establecerConfiguracionDeProveedor, establecerPasoDeIncorporacion, actualizarEstadoDeInstalacion } = usarAccionesCliente();
 
   const manejarSeleccion = (id: string) => {
     setSeleccionado(id);
@@ -74,6 +74,11 @@ const ConfiguracionDeProveedor = () => {
           id: proveedorSeleccionado.id,
           nombre: proveedorSeleccionado.nombre,
           tipo: 'IA'
+        });
+        
+        // Actualizar el estado de instalación para indicar que el proveedor está conectado
+        actualizarEstadoDeInstalacion({
+          proveedorConectado: true
         });
         
         establecerPasoDeIncorporacion(2);

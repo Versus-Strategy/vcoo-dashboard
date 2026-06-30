@@ -46,37 +46,105 @@ export function useApiMutacion<TData = unknown, TVariables = void, TError = unkn
   });
 }
 
-// Specific query hooks
+// ── Mapeo de VCOO (backend) a Servicio (frontend) ──
+
+function vcooToServicio(vcoo: Record<string, unknown>): Servicio {
+  return {
+    id: vcoo.id as string,
+    nombre: (vcoo.name as string) || 'VCOO Sin Nombre',
+    estado: (vcoo.status === 'active' || (vcoo.agent as Record<string, unknown>)?.status === 'online')
+      ? 'en-linea'
+      : vcoo.status === 'completed'
+      ? 'pausado'
+      : 'fuera-de-linea',
+    modulos: (vcoo.modules as string[]) || ['core'],
+    ultimoVisto: (vcoo.agent as Record<string, unknown>)?.last_seen as string
+      || vcoo.created_at as string
+      || new Date().toISOString(),
+  };
+}
+
+// ── Client Service Hooks ──
+
+/** Get services for a client (list of VCOOs) */
+export const useServiciosCliente = () => {
+  return useApiConsulta<Servicio[], Error>(
+    ['cliente', 'servicios'],
+    () => apiClient.get('/vcoos').then((res) =>
+      (res.data as Record<string, unknown>[]).map(vcooToServicio)
+    ),
+    { staleTime: 2 * 60 * 1000 }
+  );
+};
+
+/** Get onboarding/installation state for a client */
+export const useEstadoDeIncorporacionCliente = (vcooId: string) => {
+  return useApiConsulta<{ paso: number; estado: string }, Error>(
+    ['cliente', 'estado-incorporacion', vcooId],
+    () => apiClient.get(`/vcoo/${vcooId}/state`).then((res) => {
+      const data = res.data as Record<string, unknown>;
+      return {
+        paso: ((data.completed_steps as string[]) || []).length,
+        estado: (data.onboarding_status as string) || 'in_progress',
+      };
+    })
+  );
+};
+
+/** Create a new VCOO (service) for a client */
+export const useCrearVCOO = () => {
+  return useMutation({
+    mutationFn: (variables: { name: string; modules?: string[] }) =>
+      apiClient.post('/vcoo', {
+        name: variables.name,
+        modules: variables.modules || ['core'],
+      }).then(res => res.data),
+  });
+};
+
+/** Get provision token for a VCOO */
+export const useTokenDeProvision = (vcooId: string) => {
+  return useApiConsulta<{ token: string; install_command: string }, Error>(
+    ['vcoo', vcooId, 'token'],
+    () => apiClient.get(`/vcoo/${vcooId}/provision-token`).then(res => res.data as { token: string; install_command: string }),
+    { staleTime: 60 * 1000 }
+  );
+};
+
+// ── Operator Hooks ──
+
 interface ClienteInfo {
   id: string;
   nombre: string;
   email: string;
   estado: string;
+  servicios: Servicio[];
+  ultimoContacto: string;
 }
 
-export const useServiciosCliente = () => {
-  return useApiConsulta<Servicio[], Error>(
-    ['cliente', 'servicios'],
-    () => apiClient.get('/cliente/servicios').then((res) => res.data),
-    {
-      staleTime: 2 * 60 * 1000, // 2 minutes for frequently changing data
-    }
-  );
-};
-
+/** Get all VCOOs (client list) for operator */
 export const useClientesOperador = () => {
   return useApiConsulta<ClienteInfo[], Error>(
     ['operador', 'clientes'],
-    () => apiClient.get('/operador/clientes').then((res) => res.data),
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
+    () => apiClient.get('/vcoos').then((res) => {
+      const vcoos = res.data as Record<string, unknown>[];
+      return vcoos.map(v => ({
+        id: v.id as string,
+        nombre: (v.name as string) || 'Sin nombre',
+        email: (v.name as string)?.toLowerCase().replace(/\s+/g, '.') + '@cliente.vcoo' || 'desconocido@vcoo',
+        estado: (v.status as string) || 'offline',
+        servicios: [vcooToServicio(v)],
+        ultimoContacto: ((v.agent as Record<string, unknown>)?.last_seen as string) || (v.created_at as string) || '',
+      }));
+    }),
+    { staleTime: 5 * 60 * 1000 }
   );
 };
 
-export const useEstadoDeIncorporacionCliente = () => {
-  return useApiConsulta<{ paso: number; estado: string }, Error>(
-    ['cliente', 'estado-incorporacion'],
-    () => apiClient.get('/cliente/estado-incorporacion').then((res) => res.data)
+/** Get detail for a specific VCOO */
+export const useDetalleVCOO = (vcooId: string) => {
+  return useApiConsulta<Record<string, unknown>, Error>(
+    ['vcoo', vcooId, 'detail'],
+    () => apiClient.get(`/vcoo/${vcooId}/state`).then(res => res.data as Record<string, unknown>),
   );
 };

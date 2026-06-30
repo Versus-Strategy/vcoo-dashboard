@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usarAccionesCliente } from '../../../../store/useAppStore';
 import Button from '../../../../components/Button';
-import OAuthButton from '../../../../components/OAuthButton';
 import Grid from '../../../../components/Grid';
 
 const ConfiguracionDeModulo = () => {
   const { idDeModulo } = useParams<{ idDeModulo: string }>();
   const navigate = useNavigate();
-  const { agregarConfiguracionDeModulo } = usarAccionesCliente();
+  const { agregarConfiguracionDeModulo, actualizarEstadoDeInstalacion } = usarAccionesCliente();
   const [cargando, setCargando] = useState(false);
   const [seleccionadoProveedor, setSeleccionadoProveedor] = useState<string | null>(null);
 
@@ -81,6 +80,11 @@ const ConfiguracionDeModulo = () => {
           credenciales: { /* en producción, almacenar credenciales de forma segura */ }
         });
 
+        // Actualizar el estado de instalación para marcar este módulo como configurado
+        actualizarEstadoDeInstalacion((estadoActual) => ({
+          modulosConfigurados: new Set([...estadoActual.modulosConfigurados, idDeModulo!])
+        }));
+
         // Determinar siguiente paso basado en el módulo
         const siguienteModulo = obtenerSiguienteModulo(idDeModulo!);
         if (siguienteModulo) {
@@ -119,7 +123,7 @@ const ConfiguracionDeModulo = () => {
       <div className="border rounded-lg p-4 bg-gray-50">
         <h3 className="font-semibold text-gray-900 mb-2">{config.titulo}</h3>
         <p className="text-gray-600 mb-4">{config.descripcion}</p>
-
+        
         <div className="space-y-4">
           <div className="font-medium text-gray-700 mb-2">Proveedores disponibles:</div>
           <Grid columns={3}>
@@ -136,7 +140,7 @@ const ConfiguracionDeModulo = () => {
               </div>
             ))}
           </Grid>
-
+          
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-800 mb-2">Permisos solicitados:</h4>
             <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
@@ -146,7 +150,7 @@ const ConfiguracionDeModulo = () => {
             </ul>
           </div>
         </div>
-
+        
         <div className="border-t pt-4">
           <div className="flex justify-end">
             <Button 

@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://vcoo-onboarding.vercel.app';
 
 export interface Usuario {
   id: string;
@@ -40,7 +43,7 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
     refreshToken: null,
     estaAutenticado: false,
     cargando: false,
-    error: null
+    error: null,
   });
 
   // Load auth from localStorage on init
@@ -57,8 +60,10 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
             refreshToken: analizado.refreshToken,
             estaAutenticado: !!analizado.token,
             cargando: false,
-            error: null
+            error: null,
           });
+        } else {
+          localStorage.removeItem('vcoo-auth');
         }
       }
     } catch {
@@ -66,46 +71,52 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const iniciarSesion = async (email: string, _password: string) => {
+  const iniciarSesion = async (email: string, password: string) => {
     setAuth(prev => ({ ...prev, cargando: true, error: null }));
     try {
-      // Simulate API call - replace with real API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulate successful login
-      const usuarioMock: Usuario = {
-        id: 'usuario_123',
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email,
-        nombre: email.split('@')[0],
-        rol: email.includes('admin') ? 'operador' : 'cliente',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=random`
-      };
-
-      const tokenMock = 'mock_jwt_token_' + Date.now();
-      const refreshTokenMock = 'mock_refresh_token_' + Date.now();
-
-      setAuth({
-        usuario: usuarioMock,
-        token: tokenMock,
-        refreshToken: refreshTokenMock,
-        estaAutenticado: true,
-        cargando: false,
-        error: null
+        password,
       });
 
-      // Save to localStorage
+      const { token, user } = response.data;
+
+      const usuario: Usuario = {
+        id: user.email || email,
+        email: user.email || email,
+        nombre: user.name || email.split('@')[0],
+        rol: user.role === 'operador' ? 'operador' : 'cliente',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || email.split('@')[0])}&background=533afd&color=fff`,
+      };
+
+      const marcaDeTiempo = Date.now();
+
+      setAuth({
+        usuario,
+        token,
+        refreshToken: token,
+        estaAutenticado: true,
+        cargando: false,
+        error: null,
+      });
+
       localStorage.setItem('vcoo-auth', JSON.stringify({
-        usuario: usuarioMock,
-        token: tokenMock,
-        refreshToken: refreshTokenMock,
-        marcaDeTiempo: Date.now()
+        usuario,
+        token,
+        refreshToken: token,
+        marcaDeTiempo,
       }));
-    } catch (error) {
+    } catch (error: unknown) {
+      let mensaje = 'Credenciales inválidas';
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        mensaje = error.response.data.detail;
+      }
       setAuth(prev => ({
         ...prev,
         cargando: false,
-        error: error instanceof Error ? error.message : 'Inicio de sesión fallido'
+        error: mensaje,
       }));
+      throw new Error(mensaje);
     }
   };
 
@@ -116,30 +127,32 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
       refreshToken: null,
       estaAutenticado: false,
       cargando: false,
-      error: null
+      error: null,
     });
     localStorage.removeItem('vcoo-auth');
   };
 
   const actualizarToken = async () => {
-    if (auth.refreshToken) {
-      const newToken = `refreshed_${Date.now()}`;
-      const newRefreshToken = `refreshed_${Date.now()}_rt`;
-
-      setAuth(prev => ({
-        ...prev,
-        token: newToken,
-        refreshToken: newRefreshToken
-      }));
-
+    if (auth.token) {
       try {
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken: auth.token,
+        });
+        const { token } = response.data;
+
+        setAuth(prev => ({
+          ...prev,
+          token,
+          refreshToken: token,
+        }));
+
         const stored = JSON.parse(localStorage.getItem('vcoo-auth') || '{}');
-        stored.token = newToken;
-        stored.refreshToken = newRefreshToken;
+        stored.token = token;
+        stored.refreshToken = token;
         stored.marcaDeTiempo = Date.now();
         localStorage.setItem('vcoo-auth', JSON.stringify(stored));
       } catch {
-        // Ignore localStorage errors
+        cerrarSesion();
       }
     }
   };

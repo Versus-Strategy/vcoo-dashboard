@@ -13,36 +13,16 @@ const ServiciosPage = () => {
 
   // Update client state when services data changes
   useEffect(() => {
-    if (servicios !== undefined) {
-      // Mock data if API not available
-      const mockServicios: Servicio[] = [
-        {
-          id: 'svc_1',
-          nombre: 'VCOO Core Agent',
-          estado: 'en-linea',
-          modulos: ['Agente IA', 'Monitoreo', 'Automatización'],
-          ultimoVisto: new Date().toISOString(),
-        },
-        {
-          id: 'svc_2',
-          nombre: 'VCOO Email Service',
-          estado: 'configurando',
-          modulos: ['Gestión de Correo'],
-          ultimoVisto: new Date().toISOString(),
-        },
-      ];
-
-      // Use real data or fallback to mock
-      const dataToUse = servicios.length > 0 ? servicios : mockServicios;
+    if (servicios !== undefined && servicios.length > 0) {
       setServiciosData(
-        dataToUse.map((svc: Servicio) => ({
+        servicios.map((svc: Servicio) => ({
           nombre: svc.nombre,
           estado: svc.estado,
           modulos: svc.modulos,
           ultimoVisto: svc.ultimoVisto,
         }))
       );
-      establecerServicios(dataToUse);
+      establecerServicios(servicios);
     }
   }, [servicios, establecerServicios]);
 
