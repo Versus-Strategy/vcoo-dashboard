@@ -10,6 +10,7 @@ const statusMap: Record<string, string> = {
   completed: 'pausado',
   offline: 'fuera-de-linea',
   in_progress: 'configurando',
+  online: 'en-linea',
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

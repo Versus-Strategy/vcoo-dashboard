@@ -49,17 +49,26 @@ export function useApiMutacion<TData = unknown, TVariables = void, TError = unkn
 // ── Mapeo de VCOO (backend) a Servicio (frontend) ──
 
 function vcooToServicio(vcoo: Record<string, unknown>): Servicio {
+  const agent = vcoo.agent as Record<string, unknown> | undefined;
+  let estado: string;
+
+  if (vcoo.status === 'completed') {
+    estado = 'pausado';
+  } else if (agent) {
+    // Agent exists — use its computed online/offline status
+    estado = agent.status === 'online' ? 'en-linea' : 'fuera-de-linea';
+  } else {
+    // No agent yet — pending provisioning
+    estado = 'configurando';
+  }
+
   return {
     id: vcoo.id as string,
     nombre: (vcoo.name as string) || 'VCOO Sin Nombre',
-    estado: (vcoo.status === 'active' || (vcoo.agent as Record<string, unknown>)?.status === 'online')
-      ? 'en-linea'
-      : vcoo.status === 'completed'
-      ? 'pausado'
-      : 'fuera-de-linea',
+    estado,
     modulos: (vcoo.modules as string[]) || ['core'],
-    ultimoVisto: (vcoo.agent as Record<string, unknown>)?.last_seen as string
-      || vcoo.created_at as string
+    ultimoVisto: (agent?.last_seen as string)
+      || (vcoo.created_at as string)
       || new Date().toISOString(),
   };
 }
