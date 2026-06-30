@@ -9,6 +9,7 @@ export interface Usuario {
   nombre: string;
   rol: 'cliente' | 'operador';
   avatar?: string;
+  vcoo_id?: string;
 }
 
 export interface AuthState {
@@ -23,6 +24,8 @@ export interface AuthState {
 export interface AuthContextType {
   auth: AuthState;
   iniciarSesion: (email: string, password: string) => Promise<void>;
+  iniciarSesionCliente: (email: string, password: string) => Promise<void>;
+  registrarCliente: (name: string, email: string, password: string, setupToken: string) => Promise<void>;
   cerrarSesion: () => void;
   actualizarToken: () => Promise<void>;
 }
@@ -71,6 +74,24 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const guardarAuth = (token: string, usuario: Usuario) => {
+    const marcaDeTiempo = Date.now();
+    setAuth({
+      usuario,
+      token,
+      refreshToken: token,
+      estaAutenticado: true,
+      cargando: false,
+      error: null,
+    });
+    localStorage.setItem('vcoo-auth', JSON.stringify({
+      usuario,
+      token,
+      refreshToken: token,
+      marcaDeTiempo,
+    }));
+  };
+
   const iniciarSesion = async (email: string, password: string) => {
     setAuth(prev => ({ ...prev, cargando: true, error: null }));
     try {
@@ -89,25 +110,79 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || email.split('@')[0])}&background=533afd&color=fff`,
       };
 
-      const marcaDeTiempo = Date.now();
-
-      setAuth({
-        usuario,
-        token,
-        refreshToken: token,
-        estaAutenticado: true,
-        cargando: false,
-        error: null,
-      });
-
-      localStorage.setItem('vcoo-auth', JSON.stringify({
-        usuario,
-        token,
-        refreshToken: token,
-        marcaDeTiempo,
-      }));
+      guardarAuth(token, usuario);
     } catch (error: unknown) {
       let mensaje = 'Credenciales inválidas';
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        mensaje = error.response.data.detail;
+      }
+      setAuth(prev => ({
+        ...prev,
+        cargando: false,
+        error: mensaje,
+      }));
+      throw new Error(mensaje);
+    }
+  };
+
+  const iniciarSesionCliente = async (email: string, password: string) => {
+    setAuth(prev => ({ ...prev, cargando: true, error: null }));
+    try {
+      const response = await axios.post(`${API_URL}/auth/client/login`, {
+        email,
+        password,
+      });
+
+      const { token, client } = response.data;
+
+      const usuario: Usuario = {
+        id: client.id || client.email || email,
+        email: client.email || email,
+        nombre: client.name || email.split('@')[0],
+        rol: 'cliente',
+        vcoo_id: client.vcoo_id,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(client.name || email.split('@')[0])}&background=533afd&color=fff`,
+      };
+
+      guardarAuth(token, usuario);
+    } catch (error: unknown) {
+      let mensaje = 'Credenciales inválidas';
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        mensaje = error.response.data.detail;
+      }
+      setAuth(prev => ({
+        ...prev,
+        cargando: false,
+        error: mensaje,
+      }));
+      throw new Error(mensaje);
+    }
+  };
+
+  const registrarCliente = async (name: string, email: string, password: string, setupToken: string) => {
+    setAuth(prev => ({ ...prev, cargando: true, error: null }));
+    try {
+      const response = await axios.post(`${API_URL}/auth/client/register`, {
+        name,
+        email,
+        password,
+        token: setupToken,
+      });
+
+      const { token, client } = response.data;
+
+      const usuario: Usuario = {
+        id: client.id || client.email || email,
+        email: client.email || email,
+        nombre: client.name || name,
+        rol: 'cliente',
+        vcoo_id: client.vcoo_id,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(client.name || name)}&background=533afd&color=fff`,
+      };
+
+      guardarAuth(token, usuario);
+    } catch (error: unknown) {
+      let mensaje = 'Error al registrar';
       if (axios.isAxiosError(error) && error.response?.data?.detail) {
         mensaje = error.response.data.detail;
       }
@@ -158,7 +233,7 @@ export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ auth, iniciarSesion, cerrarSesion, actualizarToken }}>
+    <AuthContext.Provider value={{ auth, iniciarSesion, iniciarSesionCliente, registrarCliente, cerrarSesion, actualizarToken }}>
       {children}
     </AuthContext.Provider>
   );

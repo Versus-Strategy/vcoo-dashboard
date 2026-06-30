@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/api/apiClient';
+import { useAuth } from '@/auth/authContext';
 import StepIndicator from '@/components/StepIndicator';
 import Button from '@/components/Button';
 import StatusBadge from '@/components/StatusBadge';
@@ -79,15 +80,205 @@ const PROVEEDORES: ProviderInfo[] = [
   },
 ];
 
+// ── AuthForm: registro e inicio de sesión para clientes ──
+
+interface AuthFormProps {
+  setupToken: string;
+  onAutenticado: () => void;
+}
+
+const AuthForm = ({ setupToken, onAutenticado }: AuthFormProps) => {
+  const { iniciarSesionCliente, registrarCliente, auth } = useAuth();
+  const [esRegistro, setEsRegistro] = useState(true);
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (auth.estaAutenticado) {
+      onAutenticado();
+    }
+  }, [auth.estaAutenticado, onAutenticado]);
+
+  const manejarSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorLocal(null);
+    try {
+      if (esRegistro) {
+        if (!nombre.trim()) {
+          setErrorLocal('El nombre es obligatorio');
+          return;
+        }
+        await registrarCliente(nombre, email, password, setupToken);
+      } else {
+        await iniciarSesionCliente(email, password);
+      }
+      onAutenticado();
+    } catch (err) {
+      setErrorLocal(err instanceof Error ? err.message : 'Error de autenticación');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(125,58,237,0.08),transparent_50%)] pointer-events-none" />
+
+      <div className="relative max-w-md w-full">
+        {/* Logo / branding */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
+              V
+            </div>
+            <span className="text-white font-semibold text-lg">VCOO</span>
+          </div>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-8">
+          <h1 className="text-xl font-bold text-white mb-2">
+            {esRegistro ? 'Crear tu cuenta' : 'Iniciar sesión'}
+          </h1>
+          <p className="text-gray-400 mb-6">
+            {esRegistro
+              ? 'Regístrate para comenzar la configuración de tu VCOO'
+              : 'Ingresa con tu cuenta para continuar la configuración'}
+          </p>
+
+          <form onSubmit={manejarSubmit} className="space-y-4">
+            {esRegistro && (
+              <div>
+                <label
+                  htmlFor="auth-nombre"
+                  className="block text-sm font-medium text-gray-300 mb-1"
+                >
+                  Nombre
+                </label>
+                <input
+                  id="auth-nombre"
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors"
+                  placeholder="Tu nombre"
+                  required={esRegistro}
+                />
+              </div>
+            )}
+
+            <div>
+              <label
+                htmlFor="auth-email"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Correo electrónico
+              </label>
+              <input
+                id="auth-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors"
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="auth-password"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Contraseña
+              </label>
+              <input
+                id="auth-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors"
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </div>
+
+            {errorLocal && (
+              <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-sm text-red-300">
+                {errorLocal}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={auth.cargando}
+              loading={auth.cargando}
+            >
+              {esRegistro ? 'Crear cuenta y comenzar' : 'Iniciar sesión'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setEsRegistro(!esRegistro);
+                setErrorLocal(null);
+              }}
+              className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              {esRegistro
+                ? '¿Ya tienes cuenta? Inicia sesión'
+                : '¿No tienes cuenta? Regístrate'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Componente principal ──
 
 const SetupWizard = () => {
   const { token } = useParams<{ token: string }>();
+  const { auth } = useAuth();
+
+  // All hooks must be at the top level, before any conditional returns
+  const [mostrarWizard, setMostrarWizard] = useState(false);
+  const [checkBase, setCheckBase] = useState(true);
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verificando, setVerificando] = useState(false);
   const [conectando, setConectando] = useState<string | null>(null);
+
+  // Check localStorage directly on mount for existing auth
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('vcoo-auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.token && Date.now() - parsed.marcaDeTiempo < 24 * 60 * 60 * 1000) {
+          setMostrarWizard(true);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setCheckBase(false);
+    }
+  }, []);
+
+  // Also react to auth context changes (e.g., after registration)
+  useEffect(() => {
+    if (auth.estaAutenticado) {
+      setMostrarWizard(true);
+    }
+  }, [auth.estaAutenticado]);
 
   const fetchOnboarding = useCallback(async () => {
     if (!token) return;
@@ -104,9 +295,74 @@ const SetupWizard = () => {
     }
   }, [token]);
 
+  // Fetch onboarding data once we're authenticated and showing the wizard
   useEffect(() => {
-    fetchOnboarding();
-  }, [fetchOnboarding]);
+    if (mostrarWizard) {
+      fetchOnboarding();
+    }
+  }, [mostrarWizard, fetchOnboarding]);
+
+  // ── Auth form (not yet authenticated) ──
+
+  if (!mostrarWizard) {
+    // Still checking localStorage on first render
+    if (checkBase && !auth.cargando) {
+      return (
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 mx-auto mb-4" />
+            <p className="text-gray-400">Verificando sesión...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <AuthForm
+        setupToken={token || ''}
+        onAutenticado={() => setMostrarWizard(true)}
+      />
+    );
+  }
+
+  // ── Cargando onboarding ──
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 mx-auto mb-4" />
+          <p className="text-gray-400">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error loading onboarding ──
+
+  if (error && !onboarding) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+        <div className="bg-gray-900 border border-red-800 rounded-xl p-8 max-w-md w-full text-center">
+          <div className="text-red-400 text-5xl mb-4">⚠</div>
+          <h1 className="text-xl font-bold text-white mb-2">
+            Error de conexión
+          </h1>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <Button variant="primary" onClick={fetchOnboarding}>
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!onboarding) return null;
+
+  // ── Wizard steps ──
+
+  const pasoActual = onboarding.step;
+  const completado = onboarding.completed;
 
   // ── Verificar instalación del agente ──
 
@@ -166,41 +422,6 @@ const SetupWizard = () => {
       setConectando(null);
     }
   };
-
-  // ── Estados de carga / error ──
-
-  if (cargando) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 mx-auto mb-4" />
-          <p className="text-gray-400">Cargando configuración...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !onboarding) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <div className="bg-gray-900 border border-red-800 rounded-xl p-8 max-w-md w-full text-center">
-          <div className="text-red-400 text-5xl mb-4">⚠</div>
-          <h1 className="text-xl font-bold text-white mb-2">
-            Error de conexión
-          </h1>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <Button variant="primary" onClick={fetchOnboarding}>
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!onboarding) return null;
-
-  const pasoActual = onboarding.step;
-  const completado = onboarding.completed;
 
   // ── Renderizado de cada paso ──
 
