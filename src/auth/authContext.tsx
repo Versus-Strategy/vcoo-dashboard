@@ -40,12 +40,13 @@ interface AuthData {
 }
 
 export const ProveedorDeAuth = ({ children }: { children: ReactNode }) => {
+  // Estado inicial: cargando=true para evitar flash de Login mientras se restaura sesión
   const [auth, setAuth] = useState<AuthState>({
     usuario: null,
     token: null,
     refreshToken: null,
     estaAutenticado: false,
-    cargando: false,
+    cargando: true,
     error: null,
   });
 

@@ -21,6 +21,18 @@ function AppContent() {
     return <SetupWizard />;
   }
 
+  // Mostrar pantalla de carga mientras se restaura la sesión
+  if (auth.cargando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!auth.estaAutenticado) {
     return <Login />;
   }
@@ -68,8 +80,8 @@ function App() {
           <Route path="/" element={<AppContent />} />
           {/* Ruta explícita para login por si acaso */}
           <Route path="/login" element={<Login />} />
-          {/* Redirección de cualquier otra ruta no encontrada al home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Cualquier otra ruta se maneja internamente en AppContent */}
+          <Route path="*" element={<AppContent />} />
         </Routes>
       </BrowserRouter>
     </ProveedorDeAuth>
