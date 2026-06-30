@@ -111,6 +111,14 @@ export const useCrearVCOO = () => {
   });
 };
 
+/** Delete a VCOO (cascading delete) */
+export const useEliminarVCOO = () => {
+  return useMutation({
+    mutationFn: (vcooId: string) =>
+      apiClient.delete(`/vcoo/${vcooId}`).then(res => res.data),
+  });
+};
+
 /** Get provision token for a VCOO */
 export const useTokenDeProvision = (vcooId: string) => {
   return useApiConsulta<{ token: string; install_command: string }, Error>(

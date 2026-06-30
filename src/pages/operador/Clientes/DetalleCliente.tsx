@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDetalleVCOO, useTokenDeProvision } from '@/query/useConsulta';
+import { useDetalleVCOO, useTokenDeProvision, useEliminarVCOO } from '@/query/useConsulta';
 import apiClient from '@/api/apiClient';
+import { useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import Button from '@/components/Button';
 
@@ -28,6 +29,9 @@ const DetalleClientePage = () => {
     isLoading: cargandoToken,
     isError: errorToken,
   } = useTokenDeProvision(id || '');
+
+  const eliminarVCOO = useEliminarVCOO();
+  const queryClient = useQueryClient();
 
   const [copiado, setCopiado] = useState<string | null>(null);
 
@@ -411,6 +415,30 @@ const DetalleClientePage = () => {
         ) : (
           <p className="text-sm text-gray-500">No hay módulos configurados.</p>
         )}
+      </div>
+
+      {/* Delete client */}
+      <div className="bg-white rounded-lg shadow p-6 border border-red-200">
+        <h2 className="text-lg font-semibold text-red-700 mb-2">Zona de peligro</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Eliminar este cliente borrará todos los datos asociados de forma permanente. Esta acción no se puede deshacer.
+        </p>
+        <Button
+          variant="secondary"
+          className="text-red-600 hover:bg-red-50 border-red-200"
+          onClick={() => {
+            if (window.confirm(`¿Estás seguro de eliminar el cliente "${nombre}"? Esta acción eliminará todos los datos asociados de forma permanente.`)) {
+              eliminarVCOO.mutate(id, {
+                onSuccess: () => {
+                  queryClient.invalidateQueries({ queryKey: ['operador', 'clientes'] });
+                  navigate('/operador/clientes');
+                },
+              });
+            }
+          }}
+        >
+          Eliminar Cliente
+        </Button>
       </div>
 
       {/* Raw state data (expandable for debugging) */}

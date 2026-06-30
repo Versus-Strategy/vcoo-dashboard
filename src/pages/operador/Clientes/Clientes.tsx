@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { useClientesOperador } from '@/query/useConsulta';
+import { useClientesOperador, useEliminarVCOO } from '@/query/useConsulta';
 import { usarAccionesOperador } from '@/store/useAppStore';
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import Button from '@/components/Button';
 
@@ -20,6 +21,8 @@ const ClientesPage = () => {
   const navigate = useNavigate();
   const { data: clientes, isLoading, isError } = useClientesOperador();
   const { establecerClientes } = usarAccionesOperador();
+  const eliminarVCOO = useEliminarVCOO();
+  const queryClient = useQueryClient();
 
   // Store in zustand when data arrives
   useEffect(() => {
@@ -127,16 +130,35 @@ const ClientesPage = () => {
                       <StatusBadge estado={agenteEstado} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/operador/clientes/${id}`);
-                        }}
-                      >
-                        Ver detalle
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/operador/clientes/${id}`);
+                          }}
+                        >
+                          Ver detalle
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`¿Estás seguro de eliminar el cliente "${nombre}"? Esta acción eliminará todos los datos asociados.`)) {
+                              eliminarVCOO.mutate(id, {
+                                onSuccess: () => {
+                                  queryClient.invalidateQueries({ queryKey: ['operador', 'clientes'] });
+                                },
+                              });
+                            }
+                          }}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
