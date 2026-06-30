@@ -111,6 +111,7 @@ const DetalleClientePage = () => {
 
   const provisionToken = tokenData?.token as string | undefined;
   const installCommand = tokenData?.install_command as string | undefined;
+  const onboardingUrl = tokenData?.onboarding_url as string | undefined;
 
   return (
     <div className="space-y-6">
@@ -228,6 +229,29 @@ const DetalleClientePage = () => {
                 onClick={() => copiarAlPortapapeles(installCommand, 'comando')}
               >
                 {copiado === 'comando' ? '¡Copiado!' : 'Copiar'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {onboardingUrl && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              🌐 Enlace de incorporación para el cliente
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Comparte este enlace con tu cliente para que complete la configuración inicial.
+            </p>
+            <div className="flex items-center space-x-2">
+              <code className="flex-1 block rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-700 break-all">
+                {onboardingUrl}
+              </code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => copiarAlPortapapeles(onboardingUrl, 'enlace')}
+              >
+                {copiado === 'enlace' ? '¡Copiado!' : 'Copiar'}
               </Button>
             </div>
           </div>
