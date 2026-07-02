@@ -109,6 +109,8 @@ const DetalleClientePage = () => {
   const agentStatus = agentInfo?.status as string || 'offline';
   const agentStatusLocal = statusMap[agentStatus] || agentStatus || 'fuera-de-linea';
   const lastSeen = agentInfo?.last_seen as string | undefined;
+  const capabilities = agentInfo?.capabilities as Record<string, unknown> | undefined;
+  const providers = capabilities?.providers as Array<Record<string, unknown>> | undefined;
   const completedSteps = (estadoData?.completed_steps as string[]) || [];
   const onboardingStatus = (estadoData?.onboarding_status as string) || 'in_progress';
   const modulos = (estadoData?.modules as string[]) || [];
@@ -298,60 +300,107 @@ const DetalleClientePage = () => {
           Configura el proveedor de inteligencia artificial del agente. La API key se envía cifrada y el agente la aplica automáticamente.
         </p>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-            <select
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-            >
-              <option value="openrouter">OpenRouter</option>
-              <option value="anthropic">Anthropic (Claude)</option>
-              <option value="openai">OpenAI (GPT)</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="google">Google (Gemini)</option>
-              <option value="xai">xAI (Grok)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Modelo <span className="text-gray-400">(opcional)</span>
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
-              placeholder="p.ej. openrouter/deepseek-v4, claude-sonnet-4, gpt-4o"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-            <input
-              type="password"
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
-
-          <Button
-            onClick={handleSetProvider}
-            disabled={configuring || !provider || !apiKey}
-          >
-            {configuring ? 'Enviando...' : 'Configurar proveedor'}
-          </Button>
-
-          {configResult && (
-            <p className={`text-sm ${configResult.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
-              {configResult}
+        {!providers ? (
+          <div className="bg-gray-50 rounded-lg p-6 text-center">
+            <p className="text-sm text-gray-500">
+              ⏳ Esperando a que el agente reporte sus capacidades...
             </p>
-          )}
-        </div>
+            <p className="text-xs text-gray-400 mt-2">
+              El agente debe estar en línea para poder configurar el proveedor de IA.
+              Una vez que el agente se conecte, los proveedores disponibles aparecerán aquí.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+              <select
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                value={provider}
+                onChange={(e) => {
+                  setProvider(e.target.value);
+                  setModel('');
+                }}
+              >
+                {providers.length === 0 ? (
+                  <option value="">No hay proveedores disponibles</option>
+                ) : (
+                  providers.map((p) => (
+                    <option key={p.id as string} value={p.id as string}>
+                      {p.name as string}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {(() => {
+              const currentProvider = providers.find((p) => p.id === provider) as Record<string, unknown> | undefined;
+              const models = (currentProvider?.models as string[]) || [];
+
+              if (models.length > 0) {
+                return (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Modelo <span className="text-gray-400">(opcional)</span>
+                    </label>
+                    <select
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                    >
+                      <option value="">Seleccionar modelo...</option>
+                      {models.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Modelo <span className="text-gray-400">(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                    placeholder="p.ej. openrouter/deepseek-v4, claude-sonnet-4, gpt-4o"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  />
+                </div>
+              );
+            })()}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+              <input
+                type="password"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                placeholder="sk-..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </div>
+
+            <Button
+              onClick={handleSetProvider}
+              disabled={configuring || !provider || !apiKey}
+            >
+              {configuring ? 'Enviando...' : 'Configurar proveedor'}
+            </Button>
+
+            {configResult && (
+              <p className={`text-sm ${configResult.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                {configResult}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Onboarding progress */}
